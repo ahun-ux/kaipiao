@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>開票地圖</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4efe4; --card:#fffdf8; --ink:#2a2723; --muted:#7a7268; --line:#e7dfcf;
+    --water:#cfe4ea; --wave:#bcd8e0; --land:#ece4d1; --coast:#fffaf0; --border:#ffffff;
+    --tie:#a39a8c; --accent:#e4572e; --pillBorder:#2a2723; --shadow:0 1px 2px rgba(60,45,20,.06),0 8px 24px rgba(60,45,20,.07);
+  }
+  html.dark{
+    --bg:#11151a; --card:#1a1f26; --ink:#eef0f2; --muted:#9aa3ad; --line:#2a313a;
+    --water:#14222b; --wave:#1a2c37; --land:#2b323b; --coast:#3a434e; --border:#1a1f26;
+    --tie:#6c7480; --pillBorder:#3a434e; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .num{font-family:"Outfit","Noto Sans TC",sans-serif;font-variant-numeric:tabular-nums}
+  .wrap{max-width:1240px;margin:0 auto;padding:18px 18px 48px}
+
+  /* header */
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  h1{margin:0;font-size:clamp(22px,3.2vw,32px);font-weight:900;letter-spacing:.02em}
+  .sub{color:var(--muted);font-size:14px;margin-top:2px}
+  .hdr-r{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px}
+  .live{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);padding:5px 10px;border-radius:999px}
+  .live i{width:8px;height:8px;border-radius:50%;background:#e23b3b;box-shadow:0 0 0 0 rgba(226,59,59,.6);animation:pulse 1.6s infinite}
+  .live.err i{background:#999;animation:none}
+  @keyframes pulse{70%{box-shadow:0 0 0 8px rgba(226,59,59,0)}100%{box-shadow:0 0 0 0 rgba(226,59,59,0)}}
+  .iconbtn{border:1px solid var(--line);background:var(--card);color:var(--ink);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:15px}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+
+  /* candidates */
+  .cands{display:grid;grid-template-columns:repeat(auto-fit,minmax(172px,1fr));gap:12px}
+  .cand{position:relative;padding:16px 16px 14px;overflow:hidden}
+  .cand::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--c)}
+  .cand .top{display:flex;align-items:center;gap:10px}
+  .cand .no{width:34px;height:34px;border-radius:50%;background:var(--c);color:#fff;display:grid;place-items:center;font-weight:800;font-size:17px;flex:none}
+  .cand .nm{font-size:19px;font-weight:900;line-height:1.1;white-space:nowrap}
+  .cand .top{flex-wrap:wrap;row-gap:6px}
+  .cand .pt{font-size:12px;color:var(--muted)}
+  .cand .lead{margin-left:auto;font-size:12px;font-weight:700;color:#fff;background:var(--c);padding:3px 9px;border-radius:999px;white-space:nowrap}
+  .cand .v{font-size:clamp(30px,3.6vw,40px);font-weight:800;line-height:1;margin-top:12px;letter-spacing:-.01em}
+  .cand .v small{font-size:15px;color:var(--muted);font-weight:500;margin-left:4px}
+  .cand .meta{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;font-size:13px;color:var(--muted)}
+  .cand .pct{font-size:20px;font-weight:700;color:var(--ink)}
+  .cand .bar{height:8px;background:var(--line);border-radius:4px;margin-top:8px;overflow:hidden}
+  .cand .bar>div{height:100%;background:var(--c);border-radius:4px;transition:width .8s cubic-bezier(.2,.8,.2,1)}
+
+  /* 主打候選人：放大、獨立一整排放最上面 */
+  .cands:has(.featured){grid-template-columns:repeat(5,minmax(0,1fr))}
+  .cand.featured{order:-1;grid-column:1/-1;padding:20px 26px 18px 30px;display:flex;flex-wrap:wrap;align-items:center;column-gap:28px;
+    background:linear-gradient(100deg,color-mix(in srgb,var(--c) 14%,var(--card)),var(--card) 60%);border-color:color-mix(in srgb,var(--c) 45%,var(--line))}
+  .cand.featured::before{width:10px}
+  .cand.featured .top{flex:0 0 auto}
+  .cand.featured .no{width:56px;height:56px;font-size:28px}
+  .cand.featured .nm{font-size:38px}
+  .cand.featured .v{font-size:clamp(52px,6.4vw,84px);margin:0 0 0 auto}
+  .cand.featured .v small{font-size:22px}
+  .cand.featured .meta{flex-direction:column;align-items:flex-end;margin:0;gap:2px}
+  .cand.featured .pct{font-size:34px}
+  .cand.featured .gap{font-size:15px}
+  .cand.featured .bar{flex:1 0 100%;height:14px;border-radius:7px;margin-top:12px}
+  .cand.featured .lead{font-size:16px;padding:6px 14px;margin-left:10px}
+  @media(max-width:900px){.cands:has(.featured){grid-template-columns:repeat(2,minmax(0,1fr))}.cand.featured .nm{font-size:28px}.cand.featured .v{font-size:48px}}
+  @media(max-width:600px){
+    .cands{gap:8px}
+    .cand{padding:10px 12px 10px 16px;display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:10px}
+    .cand .top{grid-column:1}
+    .cand .no{width:28px;height:28px;font-size:14px}
+    .cand .nm{font-size:17px}
+    .cand .v{grid-column:2;grid-row:1;margin-top:0;font-size:28px;text-align:right}
+    .cand .meta{grid-column:1/3;margin-top:4px}
+    .cand .pct{font-size:16px}
+    .cand .bar{grid-column:1/3;margin-top:6px}
+    .cand .lead{margin-left:8px}
+    .cand.featured{padding:14px 14px 12px 20px;column-gap:10px}
+    .cand.featured .no{width:40px;height:40px;font-size:20px}
+    .cand.featured .nm{font-size:24px}
+    .cand.featured .v{font-size:36px}
+    .cand.featured .meta{flex:1 0 100%;flex-direction:row;justify-content:space-between;align-items:baseline;margin-top:4px}
+    .cand.featured .pct{font-size:20px}
+  }
+  /* 大螢幕：一個畫面放得下（吳淑瑾＋地圖），不用捲動 */
+  @media(min-width:1100px){
+    .wrap{max-width:none;padding:12px 20px 30px}
+    header{margin-bottom:10px}
+    h1{font-size:26px}
+    header .sub{display:inline-block;margin-left:12px}
+    header>div:first-child{display:flex;align-items:baseline;flex-wrap:wrap}
+    .cands:has(.featured){display:flex;gap:10px}
+    .cands:has(.featured)>.cand{flex:1 1 0;min-width:0}
+    .cands:has(.featured) .cand:not(.featured){display:flex;flex-direction:column;justify-content:space-between}
+    .cands:has(.featured)>.cand.featured{order:0;flex:2.3 1 0;padding:14px 20px 14px 26px;column-gap:16px;align-content:center}
+    .cand.featured .top{flex:1 0 100%}
+    .cand.featured .no{width:46px;height:46px;font-size:23px}
+    .cand.featured .nm{font-size:32px}
+    .cand.featured .lead{font-size:15px}
+    .cand.featured .v{font-size:clamp(46px,4.2vw,66px);margin:8px 0 0 0}
+    .cand.featured .meta{margin:8px 0 0 auto}
+    .cand.featured .pct{font-size:30px}
+    .cand.featured .bar{margin-top:10px;height:12px}
+    .cands:has(.featured) .cand:not(.featured){padding:12px 12px 10px 16px}
+    .cands:has(.featured) .cand:not(.featured) .no{width:26px;height:26px;font-size:14px}
+    .cands:has(.featured) .cand:not(.featured) .nm{font-size:17px}
+    .cands:has(.featured) .cand:not(.featured) .v{font-size:clamp(24px,2.2vw,34px);margin-top:10px}
+    .cands:has(.featured) .cand:not(.featured) .v small{font-size:12px}
+    .cands:has(.featured) .cand:not(.featured) .meta{font-size:12px}
+    .cands:has(.featured) .cand:not(.featured) .pct{font-size:16px}
+    .strip{margin-top:10px;padding:8px 16px}
+    .strip .val{font-size:17px}
+    .grid{margin-top:10px;grid-template-columns:minmax(0,1fr) 340px}
+    .side{overflow:auto;scrollbar-width:thin}
+  }
+  /* progress strip */
+  .strip{display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px;padding:12px 16px;margin-top:12px}
+  .strip .k{font-size:12px;color:var(--muted)}
+  .strip .val{font-size:19px;font-weight:700}
+  .prog{flex:1;min-width:200px}
+  .prog .track{height:10px;border-radius:5px;background:var(--line);overflow:hidden;margin-top:5px}
+  .prog .track>div{height:100%;background:linear-gradient(90deg,#f0a35e,var(--accent));transition:width .8s}
+
+  /* main grid */
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:12px;margin-top:12px;align-items:start}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+
+  .mapcard{position:relative;overflow:hidden;min-height:420px}
+  #map{height:clamp(440px,66vh,720px)}
+  .map-tools{position:absolute;top:12px;left:12px;right:12px;display:flex;gap:8px;align-items:flex-start;pointer-events:none}
+  .map-tools>*{pointer-events:auto}
+  .search{position:relative;flex:0 1 240px}
+  .search input{width:100%;font:inherit;font-size:14px;padding:8px 12px 8px 32px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+  .search::before{content:"⌕";position:absolute;left:12px;top:6px;color:var(--muted);font-size:17px}
+  .sugg{position:absolute;top:40px;left:0;right:0;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);max-height:240px;overflow:auto;display:none}
+  .sugg div{padding:8px 12px;cursor:pointer;font-size:14px}
+  .sugg div:hover{background:var(--bg)}
+  .zoom{margin-left:auto;display:flex;flex-direction:column;gap:6px}
+  .followbtn{flex:none;border:2px solid var(--line);background:var(--card);color:var(--muted);font:inherit;font-size:13px;padding:6px 12px;border-radius:999px;cursor:pointer;box-shadow:var(--shadow)}
+  .followbtn.on{border-color:var(--accent);color:var(--accent);font-weight:700}
+  .tchips{position:absolute;top:56px;left:12px;right:64px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
+  .tchips::-webkit-scrollbar{display:none}
+  .tchips button{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:13px;padding:5px 11px;border-radius:999px;cursor:pointer;box-shadow:var(--shadow)}
+  .tchips button.on{background:var(--ink);color:var(--card);border-color:var(--ink)}
+  .towns .t{padding:9px 0;border-top:1px dashed var(--line);cursor:pointer}
+  .towns .t:first-child{border-top:none}
+  .towns .t .h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:14px}
+  .towns .t .h b{font-size:15px}
+  .towns .t .h span{color:var(--muted);font-size:12px;white-space:nowrap}
+  .towns .t .stack{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--line);margin-top:6px}
+  .towns .t .lead{font-size:12px;margin-top:4px;color:var(--muted)}
+  .legend{position:absolute;left:12px;bottom:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 10px;font-size:12px;color:var(--muted);box-shadow:var(--shadow);display:flex;flex-wrap:wrap;gap:6px 12px;max-width:calc(100% - 24px)}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .legend b{width:12px;height:12px;border-radius:3px;display:inline-block}
+  .loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:15px;background:var(--water);z-index:3}
+
+  .tip{position:fixed;pointer-events:none;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:10px 12px;font-size:13px;min-width:180px;z-index:20;opacity:0;transition:opacity .12s}
+  .tip h4{margin:0 0 4px;font-size:15px}
+  .tip .r{display:flex;justify-content:space-between;gap:12px;margin-top:3px}
+  .tip .r i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+
+  /* side */
+  .side{display:flex;flex-direction:column;gap:12px}
+  .panel{padding:14px 16px}
+  .panel h3{margin:0 0 10px;font-size:14px;font-weight:700;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+  .wins .row{display:flex;align-items:center;gap:10px;margin:8px 0}
+  .wins .row .nm{width:70px;font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wins .row .b{flex:1;height:22px;background:var(--line);border-radius:6px;overflow:hidden}
+  .wins .row .b>div{height:100%;border-radius:6px;transition:width .8s}
+  .wins .row .n{width:46px;text-align:right;font-weight:700}
+  .feed{max-height:300px;overflow:auto;margin:0 -4px}
+  .feed .it{padding:8px 4px;border-top:1px dashed var(--line);font-size:13px;cursor:pointer}
+  .feed .it:first-child{border-top:none}
+  .feed .it .t{color:var(--muted);font-size:12px}
+  .feed .it .s{font-weight:700}
+  .feed .it .vs{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:3px}
+  .feed .it .vs span{display:inline-flex;align-items:center;gap:4px}
+  .feed .it .vs i{width:7px;height:7px;border-radius:50%}
+  .feed .it.new{animation:newin 1.2s ease-out}
+  @keyframes newin{from{background:rgba(228,87,46,.18)}to{background:transparent}}
+  .empty{color:var(--muted);font-size:13px;padding:6px 0}
+
+  /* detail */
+  .detail{display:none}
+  .detail.show{display:block}
+  .detail .x{border:none;background:none;color:var(--muted);font-size:18px;cursor:pointer}
+  .detail .vill{font-size:22px;font-weight:900}
+  .detail .town{font-size:13px;color:var(--muted)}
+  .detail .crow{margin-top:10px}
+  .detail .crow .l{display:flex;justify-content:space-between;font-size:14px}
+  .detail .crow .b{height:8px;background:var(--line);border-radius:4px;margin-top:4px;overflow:hidden}
+  .detail .crow .b>div{height:100%;border-radius:4px}
+  .detail .sts{margin-top:12px;font-size:12px;color:var(--muted)}
+  .detail .sts div{display:flex;justify-content:space-between;padding:3px 0}
+  .ok{color:#22a06b} .wait{color:var(--muted)}
+
+  /* table */
+  .tablecard{margin-top:12px;padding:14px 16px}
+  .tablecard .hd{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+  .tablecard h3{margin:0;font-size:16px;font-weight:900}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+  .seg button{border:none;background:transparent;color:var(--muted);font:inherit;font-size:13px;padding:6px 12px;cursor:pointer}
+  .seg button.on{background:var(--ink);color:var(--card)}
+  .tbl{width:100%;border-collapse:collapse;font-size:14px}
+  .tbl th{font-size:12px;font-weight:500;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .tbl td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
+  .tbl tr{cursor:pointer}
+  .tbl tr:hover td{background:var(--bg)}
+  .tbl .stack{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--line);min-width:120px}
+  .tbl .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+  .tbl .r{text-align:right}
+  .tblwrap{overflow-x:auto}
+  .err{display:none;margin-top:12px;padding:10px 14px;border-radius:12px;background:#fde8e4;color:#9b2c16;font-size:14px}
+  .warn{color:var(--muted);font-size:12px;margin-top:8px}
+  footer{margin-top:18px;text-align:center;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="title">開票地圖</h1>
+      <div class="sub" id="subtitle"></div>
+    </div>
+    <div class="hdr-r">
+      <span class="live" id="live"><i></i><span id="liveTxt">連線中…</span></span>
+      <button class="iconbtn" id="fs" title="全螢幕">⛶</button>
+      <button class="iconbtn" id="theme" title="深色／淺色">🌙</button>
+    </div>
+  </header>
+
+  <section class="cands" id="cands"></section>
+
+  <section class="card strip">
+    <div class="prog">
+      <div class="k">開票進度 <b class="num" id="progTxt" style="color:var(--ink);margin-left:4px">0 / 0 所</b></div>
+      <div class="track"><div id="progBar" style="width:0%"></div></div>
+    </div>
+    <div><div class="k">有效票</div><div class="val num" id="sValid">0</div></div>
+    <div id="turnWrap" style="display:none"><div class="k">投票率 <span id="turnHint"></span></div><div class="val num" id="sTurn">0%</div></div>
+    <div><div class="k">廢票</div><div class="val num" id="sInvalid">0</div></div>
+    <div><div class="k">總投票數</div><div class="val num" id="sTotal">0</div></div>
+  </section>
+
+  <div class="err" id="err"></div>
+
+  <section class="grid">
+    <div class="card mapcard">
+      <svg id="map"></svg>
+      <div class="loading" id="loading">🏝️ 地圖載入中…</div>
+      <div class="map-tools">
+        <div class="search">
+          <input id="q" type="text" placeholder="搜尋村里或投開票所" autocomplete="off">
+          <div class="sugg" id="sugg"></div>
+        </div>
+        <button class="followbtn" id="followBtn">🎯 自動跟隨：開</button>
+        <div class="zoom">
+          <button class="iconbtn" id="zin" title="放大">＋</button>
+          <button class="iconbtn" id="zout" title="縮小">－</button>
+          <button class="iconbtn" id="zreset" title="回到全圖">⤢</button>
+        </div>
+      </div>
+      <div class="tchips" id="tchips"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+
+    <aside class="side" id="side">
+      <div class="card panel detail" id="detail"></div>
+      <div class="card panel towns" id="townsPanel" style="display:none">
+        <h3>各鄉鎮市區戰況</h3>
+        <div id="towns"></div>
+      </div>
+      <div class="card panel wins">
+        <h3>各候選人領先村里數</h3>
+        <div id="wins"></div>
+      </div>
+      <div class="card panel">
+        <h3>最新回報 <span class="num" id="feedCount" style="font-weight:500"></span></h3>
+        <div class="feed" id="feed"><div class="empty">還沒有開票所回報</div></div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="card tablecard">
+    <div class="hd">
+      <h3 id="tblTitle">各村里戰況</h3>
+      <div class="seg" id="sortSeg">
+        <button data-s="close" class="on">差距最小</button>
+        <button data-s="votes">票數最多</button>
+        <button data-s="name">依名稱</button>
+      </div>
+    </div>
+    <div class="tblwrap"><table class="tbl" id="tbl"></table></div>
+    <div class="warn" id="warn"></div>
+  </section>
+
+  <footer>資料每 <span id="refreshSec">20</span> 秒自動更新・顏色越深代表該里領先差距越大・斜線表示該里尚有開票所未回報</footer>
+</div>
+<div class="tip" id="tip"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script src="mapview.js"></script>
+<script>
+(function(){
+const ATLAS_URL = 'map/villages.json';   // 村里邊界（TopoJSON，物件名稱 villages）
+const DATA_URL = '/api/data';          // Netlify 中繼站 → Apps Script → 試算表
+const $ = id => document.getElementById(id);
+const fmt = n => (n||0).toLocaleString('zh-TW');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s||'').replace(/台/g,'臺').trim();
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+/* ---------- theme ---------- */
+try { if (localStorage.getItem('tally-theme') === 'dark' || (!localStorage.getItem('tally-theme') && matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark'); } catch(e){}
+const syncThemeBtn = () => $('theme').textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
+syncThemeBtn();
+$('theme').onclick = () => {
+  const d = document.documentElement.classList.toggle('dark');
+  try { localStorage.setItem('tally-theme', d ? 'dark' : 'light'); } catch(e){}
+  syncThemeBtn(); if (DATA && AGG) paintMap();
+};
+
+/* ---------- data source ---------- */
+async function fetchData(){
+  if (window.DEMO) return window.DEMO.getData();
+  const r = await fetch(DATA_URL, {cache: 'no-store'});
+  let j; try { j = await r.json(); } catch(e) { throw new Error('資料格式錯誤（HTTP ' + r.status + '）'); }
+  if (!j.ok) throw new Error(j.error || '讀取失敗');
+  return j;
+}
+async function fetchTopo(){
+  if (window.DEMO && window.DEMO.topo) return window.DEMO.topo;
+  const r = await fetch(ATLAS_URL);
+  if (!r.ok) throw new Error('地圖資料下載失敗');
+  return r.json();
+}
+
+/* ---------- state ---------- */
+let DATA = null, AGG = null, FEATURES = [], FEAT_BY_KEY = new Map(), selectedKey = null;
+let seenTimes = {}, firstLoad = true, sortMode = 'close', topoPromise = null;
+
+/* ---------- aggregation ---------- */
+function aggregate(d){
+  const cands = d.candidates, rep = d.reports || {};
+  const totals = {}; cands.forEach(c => totals[c.no] = 0);
+  let invalid = 0, reported = 0;
+  const villages = new Map(), unmatched = new Set();
+
+  const resolveKey = (town, vill) => {
+    vill = norm(vill); town = norm(town);
+    if (town && FEAT_BY_KEY.has(town+'|'+vill)) return town+'|'+vill;
+    if (!town && d.config.towns.length === 1 && FEAT_BY_KEY.has(norm(d.config.towns[0])+'|'+vill)) return norm(d.config.towns[0])+'|'+vill;
+    if (!town) { const f = FEATURES.find(f => f.properties._v === vill); if (f) return f.properties._key; }
+    return null;
+  };
+
+  d.stations.forEach(s => {
+    const r = rep[s.id];
+    if (r) {
+      reported++; invalid += r.invalid || 0;
+      cands.forEach(c => totals[c.no] += (r.votes[c.no] || 0));
+    }
+    s._keys = [];
+    s.villages.forEach(v => {
+      const key = resolveKey(s.town, v);
+      if (!key) { unmatched.add((s.town ? s.town+' ' : '') + v); return; }
+      s._keys.push(key);
+      if (!villages.has(key)) villages.set(key, {key, town:key.split('|')[0], vill:key.split('|')[1], stations:[], reported:0, votes:{}, invalid:0});
+      const V = villages.get(key);
+      V.stations.push(s);
+      if (r) { V.reported++; V.invalid += r.invalid||0; cands.forEach(c => V.votes[c.no] = (V.votes[c.no]||0) + (r.votes[c.no]||0)); }
+    });
+  });
+
+  villages.forEach(V => {
+    const arr = cands.map(c => ({c, v: V.votes[c.no]||0})).sort((a,b) => b.v - a.v);
+    V.sum = arr.reduce((a,x) => a + x.v, 0);
+    V.ranked = arr;
+    V.tie = V.sum > 0 && arr.length > 1 && arr[0].v === arr[1].v;
+    V.leader = V.sum > 0 && !V.tie ? arr[0].c : null;
+    V.margin = V.sum > 0 && arr.length > 1 ? (arr[0].v - arr[1].v) / V.sum : (V.sum > 0 ? 1 : 0);
+  });
+
+  const townAgg = new Map();
+  d.stations.forEach(s => {
+    const t = s._keys[0] ? s._keys[0].split('|')[0] : norm(s.town);
+    if (!t) return;
+    if (!townAgg.has(t)) townAgg.set(t, {town:t, total:0, reported:0, votes:{}});
+    const T = townAgg.get(t), r = rep[s.id];
+    T.total++;
+    if (r) { T.reported++; cands.forEach(c => T.votes[c.no] = (T.votes[c.no]||0) + (r.votes[c.no]||0)); }
+  });
+  townAgg.forEach(T => {
+    T.sum = cands.reduce((a,c) => a + (T.votes[c.no]||0), 0);
+    T.ranked = cands.map(c => ({c, v: T.votes[c.no]||0})).sort((a,b) => b.v - a.v);
+  });
+  const valid = Object.values(totals).reduce((a,b) => a+b, 0);
+  return {totals, valid, invalid, reported, villages, unmatched, towns: townAgg};
+}
+
+/* ---------- render: candidates & stats ---------- */
+function renderTop(){
+  const d = DATA, A = AGG;
+  $('title').textContent = d.config.title; document.title = d.config.title;
+  $('subtitle').textContent = d.config.subtitle || '';
+  $('refreshSec').textContent = d.config.refresh;
+  const max = Math.max(0, ...Object.values(A.totals));
+  const leaders = d.candidates.filter(c => A.totals[c.no] === max && max > 0);
+  const sorted = [...d.candidates].sort((a,b) => A.totals[b.no] - A.totals[a.no]);
+  const second = sorted[1] ? A.totals[sorted[1].no] : 0;
+
+  const host = $('cands');
+  if (host.children.length !== d.candidates.length) {
+    host.innerHTML = d.candidates.map(c => `
+      <div class="card cand ${String(d.config.featured||'') === c.no ? 'featured' : ''}" data-no="${esc(c.no)}" style="--c:${esc(c.color)}">
+        <div class="top"><div class="no num">${esc(c.no)}</div>
+          <div><div class="nm"></div><div class="pt"></div></div>
+          <span class="lead" style="display:none">領先</span></div>
+        <div class="v num"><span class="n">0</span><small>票</small></div>
+        <div class="meta"><span class="gap"></span><span class="pct num">0%</span></div>
+        <div class="bar"><div style="width:0"></div></div>
+      </div>`).join('');
+  }
+  d.candidates.forEach(c => {
+    const el = host.querySelector(`[data-no="${CSS.escape(c.no)}"]`);
+    el.style.setProperty('--c', c.color);
+    el.querySelector('.nm').textContent = c.name;
+    el.querySelector('.pt').textContent = c.party || '';
+    const v = A.totals[c.no], pct = A.valid ? v / A.valid * 100 : 0;
+    countTo(el.querySelector('.n'), v);
+    el.querySelector('.pct').textContent = pct.toFixed(2) + '%';
+    el.querySelector('.bar>div').style.width = pct + '%';
+    const isLead = leaders.length === 1 && leaders[0] === c;
+    const lead = el.querySelector('.lead');
+    lead.style.display = isLead ? '' : 'none';
+    const done = d.stations.length > 0 && A.reported === d.stations.length;
+    lead.textContent = isLead && second < max ? `${done ? '🎉 勝出' : '領先'} ${fmt(max - second)} 票` : '領先';
+    el.querySelector('.gap').textContent = !isLead && max > 0 ? `差 ${fmt(max - v)} 票` : (leaders.length > 1 && max > 0 ? '同票' : '');
+  });
+
+  const total = d.stations.length, pct = total ? A.reported / total * 100 : 0;
+  const fillingN = (d.partial || []).length;
+  $('progTxt').textContent = (A.reported === total && total ? '✅ 開票完成・' : '') + `${A.reported} / ${total} 所（${pct.toFixed(1)}%）` + (fillingN ? `・${fillingN} 所填寫中` : '');
+  $('progBar').style.width = pct + '%';
+  countTo($('sValid'), A.valid); countTo($('sInvalid'), A.invalid); countTo($('sTotal'), A.valid + A.invalid);
+  const el = Number(d.config.electors) || 0;
+  $('turnWrap').style.display = el ? '' : 'none';
+  if (el) {
+    const votes = A.valid + A.invalid;
+    $('sTurn').textContent = (votes / el * 100).toFixed(1) + '%';
+    $('turnHint').textContent = `（${fmt(votes)} / 選舉人 ${fmt(el)}）`;
+  }
+  const showInv = d.config.hasInvalid !== false;
+  $('sInvalid').parentElement.style.display = showInv ? '' : 'none';
+  $('sTotal').parentElement.style.display = showInv ? '' : 'none';
+}
+
+function countTo(el, to){
+  const from = Number(el.dataset.v || 0);
+  el.dataset.v = to;
+  if (from === to) { el.textContent = fmt(to); return; }
+  const t0 = performance.now(), dur = 700;
+  const step = now => {
+    const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1-k, 3);
+    el.textContent = fmt(Math.round(from + (to - from) * e));
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+/* ---------- 浮動鄉鎮標籤 ---------- */
+function shortNames(){
+  const cs = DATA.candidates, tries = [c => c.name.slice(0,1), c => c.name.slice(-1), c => c.no + '號'];
+  for (const t of tries) { const v = cs.map(t); if (new Set(v).size === v.length) return Object.fromEntries(cs.map((c,i) => [c.no, v[i]])); }
+  return Object.fromEntries(cs.map(c => [c.no, c.no + '號']));
+}
+function townLabelHtml(t){
+  if (!AGG) return `<span class="tn">${esc(t)}</span>`;
+  const sn = shortNames(), cnt = {};
+  AGG.villages.forEach(V => { if (V.town === t && V.leader) cnt[V.leader.no] = (cnt[V.leader.no]||0) + 1; });
+  const badges = DATA.candidates.filter(c => cnt[c.no]).sort((a,b) => cnt[b.no] - cnt[a.no])
+    .map(c => `<span class="tb" style="background:${esc(c.color)}">${esc(sn[c.no])}${cnt[c.no]}</span>`).join('');
+  return `<span class="tn">${esc(t)}</span>` + (badges || `<span class="tb" style="background:#b8c2cc">未開</span>`);
+}
+
+/* ---------- 自動飛過去 ---------- */
+let FOLLOW = true; try { FOLLOW = localStorage.getItem('tally-follow') !== 'off'; } catch(e){}
+const followQ = []; let following = false, returnTimer = null;
+function syncFollowBtn(){ $('followBtn').classList.toggle('on', FOLLOW); $('followBtn').textContent = FOLLOW ? '🎯 自動跟隨：開' : '🎯 自動跟隨：關'; }
+function popHtml(s, r){
+  const arr = DATA.candidates.map(c => ({c, v: r.votes[c.no] || 0})).sort((a,b) => b.v - a.v);
+  const sum = arr.reduce((a,x) => a + x.v, 0) || 1;
+  return `<div style="font-size:12px;color:var(--muted)">🎉 剛開出・${esc(s.villages.join('、'))}</div>
+    <div style="font-size:18px;font-weight:900;margin:2px 0 6px">${esc(s.name)}</div>`
+    + arr.map((x,i) => `<div style="display:flex;justify-content:space-between;gap:14px;font-size:14px;${i===0?'font-weight:700':''}">
+      <span><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${esc(x.c.color)};margin-right:6px"></i>${esc(x.c.name)}</span>
+      <span class="num">${fmt(x.v)}<span style="color:var(--muted);font-weight:400;font-size:12px"> ${(x.v/sum*100).toFixed(0)}%</span></span></div>`).join('');
+}
+function enqueueNew(ids){
+  ids.forEach(id => { const s = DATA.stations.find(x => x.id === id); if (s && s._keys[0]) followQ.push(s); });
+  if (!following) nextFollow();
+}
+function nextFollow(){
+  const s = followQ.shift();
+  if (!s) {
+    following = false;
+    clearTimeout(returnTimer);
+    returnTimer = setTimeout(() => { if (FOLLOW && !following && Date.now() - MV.lastInteract > 8000 && !selectedKey) zoomTown(activeTown); }, 3500);
+    return;
+  }
+  following = true;
+  const r = DATA.reports[s.id];
+  const userBusy = Date.now() - MV.lastInteract < 12000 || selectedKey;
+  if (FOLLOW && !userBusy && r) {
+    MV.celebrate(s._keys[0], popHtml(s, r), 2300, [s.id]);
+    setTimeout(nextFollow, followQ.length > 4 ? 1600 : 3100);
+  } else {
+    MV.flash(new Set(s._keys), [s.id]);
+    setTimeout(nextFollow, 250);
+  }
+}
+
+/* ---------- map ---------- */
+let MV = null;
+function fitHeights(){
+  const wide = innerWidth >= 1100;
+  const map = $('map'), side = $('side');
+  if (!wide) { map.style.height = ''; side.style.maxHeight = ''; return; }
+  const top = map.getBoundingClientRect().top + scrollY;
+  const h = Math.max(420, innerHeight - top - 14);
+  map.style.height = h + 'px'; side.style.maxHeight = h + 'px';
+}
+function buildMap(topo){
+  fitHeights();
+  MV = MapView.create($('map'), topo, {
+    county: DATA.config.county, towns: DATA.config.towns,
+    pad: {top: 104, bottom: 60, left: 30, right: 60},
+    onClick: f => select(f ? f.properties._key : null),
+    onHover: (f, ev) => f ? showTip(ev, f) : hideTip(),
+    townLabel: townLabelHtml,
+    onTownClick: t => zoomTown(t),
+  });
+  FEATURES = MV.features; FEAT_BY_KEY = MV.byKey;
+  if (!FEATURES.length) { $('loading').textContent = '找不到符合設定的村里，請檢查「設定」裡的縣市與鄉鎮市區'; return; }
+  $('loading').style.display = 'none';
+}
+
+function fillFor(V){
+  const land = css('--land');
+  if (!V || V.reported === 0) return land;
+  if (V.tie) return css('--tie');
+  if (!V.leader) return land;
+  const t = 0.55 + 0.45 * Math.min(1, V.margin / 0.3);
+  return d3.interpolateRgb(land, V.leader.color)(t);
+}
+function stationLeader(r){
+  if (!r) return null;
+  const arr = DATA.candidates.map(c => ({c, v: r.votes[c.no] || 0})).sort((a,b) => b.v - a.v);
+  return arr[0].v > 0 && (!arr[1] || arr[0].v > arr[1].v) ? arr[0].c : null;
+}
+
+function paintMap(changedKeys){
+  if (!MV) return;
+  const hatch = new Set();
+  AGG.villages.forEach(V => { if (V.reported > 0 && V.reported < V.stations.length) hatch.add(V.key); });
+  MV.paint(k => fillFor(AGG.villages.get(k)), {hatch, selected: selectedKey});
+  MV.setMarkers(DATA.stations.filter(s => s._keys && s._keys[0]).map(s => ({id: s.id, key: s._keys[0]})));
+  MV.paintMarkers(id => { const r = DATA.reports[id]; if (!r) return {}; const L = stationLeader(r); return {roof: L ? L.color : css('--tie'), flag: true}; });
+  MV.updateTownLabels();
+  // legend
+  $('legend').innerHTML = DATA.candidates.map(c => `<span><b style="background:${esc(c.color)}"></b>${esc(c.name)}</span>`).join('')
+    + `<span><b style="background:var(--land);border:1px solid var(--line)"></b>未開出</span>`
+    + `<span><b style="background:repeating-linear-gradient(45deg,#bbb 0 2px,transparent 2px 5px)"></b>部分開出</span>`;
+}
+
+function villTipHtml(V, f){
+  const name = f ? f.properties._v : V.vill, town = f ? f.properties._t : V.town;
+  let h = `<h4>${esc(name)} <span style="font-weight:400;color:var(--muted);font-size:12px">${esc(town)}</span></h4>`;
+  if (!V) return h + `<div style="color:var(--muted)">沒有對應的開票所</div>`;
+  h += `<div style="color:var(--muted);font-size:12px">已開出 ${V.reported} / ${V.stations.length} 所</div>`;
+  if (V.sum > 0) V.ranked.forEach(x => {
+    h += `<div class="r"><span><i style="background:${esc(x.c.color)}"></i>${esc(x.c.name)}</span><b class="num">${fmt(x.v)}　${(x.v/V.sum*100).toFixed(1)}%</b></div>`;
+  });
+  return h;
+}
+function showTip(ev, f){
+  if (matchMedia('(hover: none)').matches) return;
+  const tip = $('tip');
+  tip.innerHTML = villTipHtml(AGG.villages.get(f.properties._key), f);
+  const x = Math.min(ev.clientX + 14, innerWidth - tip.offsetWidth - 8);
+  const y = Math.min(ev.clientY + 14, innerHeight - tip.offsetHeight - 8);
+  tip.style.left = x + 'px'; tip.style.top = y + 'px'; tip.style.opacity = 1;
+}
+function hideTip(){ $('tip').style.opacity = 0; }
+
+function select(key, zoomTo){
+  selectedKey = key;
+  paintMap();
+  renderDetail();
+  if (key && zoomTo && MV) MV.zoomTo(key);
+}
+
+function renderDetail(){
+  const el = $('detail');
+  if (!selectedKey) { el.classList.remove('show'); return; }
+  const f = FEAT_BY_KEY.get(selectedKey), V = AGG.villages.get(selectedKey);
+  let h = `<h3><span>村里詳情</span><button class="x" id="dx">✕</button></h3>
+    <div class="vill">${esc(f ? f.properties._v : V.vill)}</div><div class="town">${esc(f ? f.properties._t : V.town)}</div>`;
+  if (!V) h += `<div class="empty">這個村里沒有設定開票所</div>`;
+  else {
+    if (V.sum === 0) h += `<div class="empty">尚未開出</div>`;
+    else V.ranked.forEach(x => {
+      const p = x.v / V.sum * 100;
+      h += `<div class="crow"><div class="l"><span>${esc(x.c.no)} ${esc(x.c.name)}</span><b class="num">${fmt(x.v)}（${p.toFixed(1)}%）</b></div><div class="b"><div style="width:${p}%;background:${esc(x.c.color)}"></div></div></div>`;
+    });
+    h += `<div class="sts">` + V.stations.map(s => {
+      const r = DATA.reports[s.id];
+      return `<div><span>${esc(s.name)}</span>${r ? `<span class="ok">✓ ${timeStr(r.time)}</span>` : `<span class="wait">未回報</span>`}</div>`;
+    }).join('') + `</div>`;
+  }
+  el.innerHTML = h; el.classList.add('show');
+  $('dx').onclick = () => select(null);
+}
+
+/* ---------- side panels ---------- */
+function renderWins(){
+  const counts = {}; DATA.candidates.forEach(c => counts[c.no] = 0);
+  let ties = 0, open = 0;
+  AGG.villages.forEach(V => { if (V.reported > 0) { open++; if (V.leader) counts[V.leader.no]++; else if (V.tie) ties++; } });
+  const max = Math.max(1, ...Object.values(counts));
+  $('wins').innerHTML = DATA.candidates.map(c => `
+    <div class="row"><div class="nm">${esc(c.name)}</div>
+    <div class="b"><div style="width:${counts[c.no]/max*100}%;background:${esc(c.color)}"></div></div>
+    <div class="n num">${counts[c.no]} 里</div></div>`).join('')
+    + `<div class="empty">已開出 ${open} / ${AGG.villages.size} 個村里${ties ? `，${ties} 里同票` : ''}</div>`;
+}
+
+function townOrder(){
+  const seen = [];
+  DATA.stations.forEach(s => { const t = s._keys && s._keys[0] ? s._keys[0].split('|')[0] : norm(s.town); if (t && !seen.includes(t)) seen.push(t); });
+  MV.towns.forEach(t => { if (!seen.includes(t)) seen.push(t); });
+  return seen;
+}
+function renderTowns(){
+  const list = MV ? townOrder().map(t => AGG.towns.get(t) || {town:t, total:0, reported:0, sum:0, ranked:[], votes:{}}) : [];
+  $('townsPanel').style.display = list.length > 1 ? '' : 'none';
+  if (list.length < 2) { $('tchips').innerHTML = ''; return; }
+  $('towns').innerHTML = list.map(T => {
+    const top = T.ranked[0], sec = T.ranked[1];
+    const lead = T.sum > 0 && top && (!sec || top.v > sec.v)
+      ? `<span style="color:${esc(top.c.color)};font-weight:700">${esc(top.c.name)}</span> 領先 ${fmt(top.v - (sec ? sec.v : 0))} 票`
+      : (T.sum > 0 ? '同票' : '尚未開出');
+    const stack = T.sum > 0 ? DATA.candidates.map(c => `<div style="width:${(T.votes[c.no]||0)/T.sum*100}%;background:${esc(c.color)}"></div>`).join('') : '';
+    return `<div class="t" data-t="${esc(T.town)}"><div class="h"><b>${esc(T.town)}</b><span class="num">${T.reported}/${T.total} 所</span></div>
+      <div class="stack">${stack}</div><div class="lead">${lead}</div></div>`;
+  }).join('');
+  $('towns').querySelectorAll('.t').forEach(el => el.onclick = () => { zoomTown(el.dataset.t); $('map').scrollIntoView({behavior:'smooth', block:'center'}); });
+  if (!$('tchips').children.length) {
+    $('tchips').innerHTML = (MV.hasHome ? `<button data-t="" class="on">主島</button><button data-t="*">全部</button>` : `<button data-t="" class="on">全部</button>`) + list.map(T => `<button data-t="${esc(T.town)}">${esc(T.town)}</button>`).join('');
+    $('tchips').querySelectorAll('button').forEach(b => b.onclick = () => zoomTown(b.dataset.t));
+  }
+}
+let activeTown = '';
+function zoomTown(t){
+  activeTown = t || '';
+  $('tchips').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  if (!MV) return;
+  if (t === '*') MV.showAll(); else if (t) MV.zoomToTown(t); else MV.reset();
+}
+
+function timeStr(t){
+  if (!t) return '';
+  const d = new Date(t); if (isNaN(d)) return String(t);
+  return d.toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit', hour12:false});
+}
+
+function renderFeed(newIds){
+  const list = DATA.stations.filter(s => DATA.reports[s.id]).map(s => ({s, r: DATA.reports[s.id]}))
+    .sort((a,b) => String(b.r.time).localeCompare(String(a.r.time))).slice(0, 30);
+  $('feedCount').textContent = list.length ? `${AGG.reported} 筆` : '';
+  if (!list.length) { $('feed').innerHTML = '<div class="empty">還沒有開票所回報</div>'; return; }
+  $('feed').innerHTML = list.map(({s, r}) => `
+    <div class="it ${newIds.has(s.id) ? 'new' : ''}" data-k="${esc(s._keys[0] || '')}">
+      <div class="t num">${timeStr(r.time)}${r.reporter ? '・' + esc(r.reporter) : ''}</div>
+      <div class="s">${esc(s.name)}</div>
+      <div class="vs">${DATA.candidates.map(c => `<span><i style="background:${esc(c.color)}"></i>${esc(c.name)} <b class="num">${fmt(r.votes[c.no])}</b></span>`).join('')}</div>
+    </div>`).join('');
+  $('feed').querySelectorAll('.it').forEach(it => it.onclick = () => it.dataset.k && select(it.dataset.k, true));
+}
+
+function renderTable(){
+  const rows = [...AGG.villages.values()];
+  if (sortMode === 'close') rows.sort((a,b) => (b.sum>0) - (a.sum>0) || a.margin - b.margin);
+  else if (sortMode === 'votes') rows.sort((a,b) => b.sum - a.sum);
+  else rows.sort((a,b) => (a.town+a.vill).localeCompare(b.town+b.vill, 'zh-Hant'));
+  const multiTown = DATA.config.towns.length !== 1;
+  let h = `<thead><tr><th>村里</th>${multiTown ? '<th>鄉鎮市區</th>' : ''}<th>開出</th><th>領先</th><th class="r">差距</th><th style="min-width:160px">得票分布</th>`
+    + DATA.candidates.map(c => `<th class="r">${esc(c.name)}</th>`).join('') + `</tr></thead><tbody>`;
+  rows.forEach(V => {
+    const lead = V.leader ? `<span class="dot" style="background:${esc(V.leader.color)}"></span>${esc(V.leader.name)}` : (V.tie ? '同票' : '<span style="color:var(--muted)">—</span>');
+    const gap = V.sum > 0 && V.ranked.length > 1 ? `${fmt(V.ranked[0].v - V.ranked[1].v)}<div style="font-size:11px;color:var(--muted)">${(V.margin*100).toFixed(1)}%</div>` : '—';
+    const stack = V.sum > 0 ? DATA.candidates.map(c => `<div style="width:${(V.votes[c.no]||0)/V.sum*100}%;background:${esc(c.color)}"></div>`).join('') : '';
+    h += `<tr data-k="${esc(V.key)}"><td><b>${esc(V.vill)}</b></td>${multiTown ? `<td>${esc(V.town)}</td>` : ''}
+      <td class="num">${V.reported}/${V.stations.length}</td><td>${lead}</td><td class="r num">${gap}</td>
+      <td><div class="stack">${stack}</div></td>`
+      + DATA.candidates.map(c => `<td class="r num">${V.sum > 0 ? fmt(V.votes[c.no]) : ''}</td>`).join('') + `</tr>`;
+  });
+  $('tbl').innerHTML = h + '</tbody>';
+  $('tbl').querySelectorAll('tbody tr').forEach(tr => tr.onclick = () => { select(tr.dataset.k, true); $('map').scrollIntoView({behavior:'smooth', block:'center'}); });
+  $('warn').textContent = AGG.unmatched.size ? `⚠ 下列村里在地圖上找不到（可能名稱不同或邊界已調整），票數仍會算進總計：${[...AGG.unmatched].join('、')}` : '';
+}
+syncFollowBtn();
+$('followBtn').onclick = () => { FOLLOW = !FOLLOW; try { localStorage.setItem('tally-follow', FOLLOW ? 'on' : 'off'); } catch(e){} syncFollowBtn(); };
+$('sortSeg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  sortMode = b.dataset.s;
+  $('sortSeg').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  renderTable();
+});
+
+/* ---------- search & zoom buttons ---------- */
+$('q').addEventListener('input', () => {
+  const q = norm($('q').value);
+  const box = $('sugg');
+  if (!q) { box.style.display = 'none'; return; }
+  const hits = FEATURES.filter(f => f.properties._v.includes(q) || f.properties._t.includes(q)).slice(0, 8);
+  const sts = DATA ? DATA.stations.filter(s => s.name.includes(q) && s._keys && s._keys[0]).slice(0, 8) : [];
+  box.innerHTML = hits.map(f => `<div data-k="${esc(f.properties._key)}">${esc(f.properties._v)} <span style="color:var(--muted);font-size:12px">${esc(f.properties._t)}</span></div>`).join('')
+    + sts.map(s => `<div data-k="${esc(s._keys[0])}">🗳️ ${esc(s.name)} <span style="color:var(--muted);font-size:12px">${esc(s.villages.join('、'))}${DATA.reports[s.id] ? '・已開出' : ''}</span></div>`).join('')
+    || '<div style="color:var(--muted)">找不到</div>';
+  box.style.display = 'block';
+});
+$('sugg').addEventListener('click', e => {
+  const k = e.target.closest('[data-k]'); if (!k) return;
+  select(k.dataset.k, true); $('sugg').style.display = 'none'; $('q').value = '';
+});
+document.addEventListener('click', e => { if (!e.target.closest('.search')) $('sugg').style.display = 'none'; });
+$('zin').onclick = () => MV && MV.zoomBy(1.6);
+$('zout').onclick = () => MV && MV.zoomBy(1/1.6);
+$('zreset').onclick = () => zoomTown('');
+
+/* ---------- main loop ---------- */
+let timer = null, nextAt = 0;
+async function load(){
+  try {
+    const d = await fetchData();
+    DATA = d;
+    if (!topoPromise) topoPromise = fetchTopo().then(t => { buildMap(t); return t; });
+    await topoPromise;
+    // 黨部的表沒有回報時間：用「數字有沒有變」判斷新開出，時間記成這台電腦第一次看到的時間
+    const newIds = new Set(), nowIso = new Date().toISOString();
+    Object.entries(d.reports || {}).forEach(([id, r]) => {
+      const sig = JSON.stringify(r.votes) + '|' + r.invalid;
+      if (!seenTimes[id] || seenTimes[id].sig !== sig) {
+        if (!firstLoad) newIds.add(id);
+        seenTimes[id] = {sig, time: r.time || nowIso};
+      }
+      if (!r.time) r.time = seenTimes[id].time;
+    });
+    firstLoad = false;
+    AGG = aggregate(d);
+
+    renderTop(); if (!window._fitted) { window._fitted = true; refit(); } paintMap(); renderWins(); renderTowns(); renderFeed(newIds); renderTable(); renderDetail();
+    if (newIds.size) enqueueNew([...newIds].sort((a,b) => String(d.reports[a].time).localeCompare(String(d.reports[b].time))));
+    $('err').style.display = 'none';
+    $('live').classList.remove('err');
+    $('liveTxt').textContent = '最後更新 ' + new Date().toLocaleTimeString('zh-TW', {hour12:false});
+  } catch (e) {
+    console.error(e);
+    $('live').classList.add('err');
+    $('liveTxt').textContent = '更新失敗，稍後重試';
+    $('err').textContent = '讀取資料失敗：' + (e && e.message ? e.message : e);
+    $('err').style.display = 'block';
+  }
+  clearTimeout(timer);
+  const sec = DATA ? DATA.config.refresh : 20;
+  timer = setTimeout(load, sec * 1000);
+}
+window.BOARD_REFRESH = load;
+let rs, lastH = '';
+function refit(){ fitHeights(); const h = $('map').style.height; if (MV && h !== lastH) { lastH = h; MV.resize(); paintMap(); } }
+addEventListener('resize', () => { clearTimeout(rs); rs = setTimeout(refit, 250); });
+document.addEventListener('fullscreenchange', () => setTimeout(refit, 150));
+$('fs').onclick = async () => { try { document.fullscreenElement ? await document.exitFullscreen() : await document.documentElement.requestFullscreen(); } catch(e){} };
+load();
+})();
+</script>
+</body>
+</html>

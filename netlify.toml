@@ -1,0 +1,11 @@
+[build]
+  publish = "site"
+
+[functions]
+  directory = "netlify/functions"
+
+# 地圖檔很少變，讓瀏覽器快取一小時
+[[headers]]
+  for = "/map/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
