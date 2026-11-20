@@ -4,7 +4,7 @@
 //   第 1 列：區域 | 票所 | 編號 | 監票員 | 村里 | 項目 | 縣長 | (空) ... | 馬公市長 | ...
 //   第 2 列：各候選人號次
 //   第 3 列：各候選人姓名
-//   第 4 列起：一列一所投開票所，候選人欄位填票數
+//   第 4 列起：一列一所投開票所，候選人欄位填票數（只要有任何一格有數字，就算開出）
 //
 // Netlify 環境變數：
 //   PARTY_SHEET_ID   黨部試算表網址中 /d/ 和 /edit 之間那一串（必填，不寫在程式裡以免連結外流）
@@ -55,8 +55,10 @@ export default async (req) => {
 
   // 檢查用：/api/data?debug=1 看黨部表前 8 列（只看標題，不含票數判斷）
   if (new URL(req.url).searchParams.get('debug')) {
-    const rows = parseCSV(text).slice(0, 8).map(r => r.slice(0, 16));
-    return new Response(JSON.stringify({ ok: true, debug: true, rows }, null, 1), { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
+    const rows = parseCSV(text).slice(0, 6).map(r => r.slice(0, 16));
+    let parsed = null;
+    try { const d = parseSheet(text, { ...CONFIG, _debug: true }); parsed = d.debug; } catch (e) { parsed = { 錯誤: e.message }; }
+    return new Response(JSON.stringify({ ok: true, 前幾列: rows, 解析結果: parsed }, null, 1), { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
   }
 
   let data;
@@ -127,8 +129,13 @@ export function parseSheet(text, cfg) {
   }
   if (!candidates.length) throw new Error(`「${cfg.race}」底下沒有候選人。前幾列：` + preview());
 
-  const toNum = v => { const s = String(v ?? '').replace(/[,，\s]/g, ''); return /^\d+$/.test(s) ? Number(s) : null; };
+  // 數字容錯：全形數字、千分位、空白、「票」字、120.0 都能讀
+  const toNum = v => {
+    const s = String(v ?? '').replace(/[０-９]/g, d => String.fromCharCode(d.charCodeAt(0) - 0xFEE0)).replace(/[,，、\s\u3000票]/g, '');
+    return /^\d+(\.0+)?$/.test(s) ? parseInt(s, 10) : null;
+  };
   const stations = [], reports = {}, partial = [];
+  const debugRows = cfg._debug ? [] : null;
   let lastTown = '', lastVill = '';
   for (let r = lastHead + 1; r < rows.length; r++) {
     const row = rows[r];
@@ -142,11 +149,13 @@ export function parseSheet(text, cfg) {
 
     const vals = candCols.map(i => toNum(row[i]));
     const filled = vals.filter(v => v !== null).length;
-    if (filled === vals.length) {
+    if (debugRows && row.slice(start, end).some(c => String(c ?? '').trim()) && debugRows.length < 6) debugRows.push({ 編號: id, 村里: vill, 縣長欄位原始內容: row.slice(start, end), 讀到的數字: vals });
+    if (filled > 0) {                                   // 只要有任何一格有數字就算開出，沒填的先當 0
       const votes = {};
-      candidates.forEach((c, k) => votes[c.no] = vals[k]);
+      candidates.forEach((c, k) => votes[c.no] = vals[k] || 0);
       reports[id] = { time: '', reporter: '', invalid: invalidCol >= 0 ? (toNum(row[invalidCol]) || 0) : 0, votes };
-    } else if (filled > 0) partial.push(id);
+      if (filled < vals.length) partial.push(id);     // 還沒填完的（只做提示）
+    }
   }
 
   // 名稱：村里去掉「里／村」，同一里有好幾所就加 1、2、3
@@ -161,6 +170,7 @@ export function parseSheet(text, cfg) {
   return {
     config: { title: cfg.title, subtitle: cfg.subtitle, county: cfg.county, towns: cfg.towns, refresh: cfg.refresh, hasInvalid: invalidCol >= 0, featured: cfg.featured || '', electors: cfg.electors || 0 },
     candidates, stations, reports, partial,
+    ...(debugRows ? { debug: { 標題列位置: hi + 1, 縣長欄位: [start, end - 1], 候選人: candidates.map(c => c.no + c.name), 開票所數: stations.length, 已開出: Object.keys(reports).length, 填寫中: partial, 有填數字的列: debugRows } } : {}),
     serverTime: new Date().toISOString(),
   };
 }
