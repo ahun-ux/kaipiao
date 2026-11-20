@@ -36,7 +36,7 @@ const CONFIG = {
   colors: ['#8a9097', '#8a9097', '#7e3fc4', '#1f9d55', '#1f5fd1', '#8a9097', '#7a6a58', '#b58900'],   // 沒有指定號次時依序使用
 };
 
-export default async () => {
+export default async (req) => {
   const url = process.env.PARTY_CSV_URL ||
     (process.env.PARTY_SHEET_ID
       ? `https://docs.google.com/spreadsheets/d/${process.env.PARTY_SHEET_ID}/export?format=csv&gid=${process.env.PARTY_SHEET_GID || '0'}`
@@ -51,6 +51,12 @@ export default async () => {
     if (/^\s*<(!doctype|html)/i.test(text)) return fail(502, '黨部的試算表需要登入才能看，中繼站讀不到。請確認分享設定是「知道連結的人都能檢視」');
   } catch (e) {
     return fail(502, '連不上 Google 試算表，請稍後再試');
+  }
+
+  // 檢查用：/api/data?debug=1 看黨部表前 8 列（只看標題，不含票數判斷）
+  if (new URL(req.url).searchParams.get('debug')) {
+    const rows = parseCSV(text).slice(0, 8).map(r => r.slice(0, 16));
+    return new Response(JSON.stringify({ ok: true, debug: true, rows }, null, 1), { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
   }
 
   let data;
@@ -70,20 +76,45 @@ export default async () => {
 
 export function parseSheet(text, cfg) {
   const rows = parseCSV(text);
-  const clean = s => String(s ?? '').replace(/[\s　]+/g, '');
-  const hi = rows.findIndex(r => r.some(c => clean(c) === '區域'));
-  if (hi < 0) throw new Error('黨部的表格式變了：找不到「區域」標題列');
-  const H = rows[hi].map(clean);
-  const col = (...names) => { for (const n of names) { const i = H.indexOf(n); if (i >= 0) return i; } return -1; };
-  const cTown = col('區域'), cNo = col('編號', '票所'), cVill = col('村里');
-  if (cNo < 0 || cVill < 0) throw new Error('黨部的表格式變了：找不到「編號」或「村里」欄');
+  const clean = s => String(s ?? '').replace(/[\s\u3000\u00a0]+/g, '').replace(/[臺]/g, '台');
+  const preview = () => rows.slice(0, 4).map(r => r.slice(0, 10).map(c => String(c).trim()).join('｜')).join(' ／ ');
 
-  const start = H.indexOf(clean(cfg.race));
-  if (start < 0) throw new Error(`黨部的表裡找不到「${cfg.race}」這一欄`);
+  // 找標題列：含「區域」的那一列（標題可能分成上下兩列，所以往下多看幾列）
+  const hi = rows.findIndex(r => r.some(c => clean(c).includes('區域')));
+  if (hi < 0) throw new Error('黨部的表格式變了：找不到「區域」標題列。前幾列：' + preview());
+  const headRows = rows.slice(hi, hi + 4).map(r => r.map(clean));
+  const width = Math.max(...rows.slice(hi, hi + 4).map(r => r.length));
+  const findCol = (tests) => {
+    for (const t of tests) for (const r of headRows) for (let i = 0; i < width; i++) if (r[i] && t(r[i])) return i;
+    return -1;
+  };
+  const is = n => c => c === n, has = n => c => c.includes(n);
+  const cTown = findCol([is('區域'), has('區域'), is('鄉鎮市'), has('鄉鎮')]);
+  const cNo = findCol([is('編號'), is('票所'), is('投開票所'), has('編號'), is('序號'), is('所別'), has('票所')]);
+  const cVill = findCol([is('村里'), has('村里'), c => c.includes('村') && c.includes('里'), is('里別'), is('里'), is('村')]);
+  if (cNo < 0 || cVill < 0) throw new Error('黨部的表格式變了：找不到「編號」或「村里」欄。前幾列：' + preview());
+
+  // 選舉欄位：標題完全等於「縣長」，找不到再找含「縣長」但不是「市長／鄉長」的
+  const R = clean(cfg.race);
+  let start = -1, rIdx = -1;
+  headRows.forEach((r, k) => { if (start < 0) { const i = r.indexOf(R); if (i >= 0) { start = i; rIdx = k; } } });
+  if (start < 0) headRows.forEach((r, k) => { if (start < 0) { const i = r.findIndex(c => c.includes(R)); if (i >= 0) { start = i; rIdx = k; } } });
+  if (start < 0) throw new Error(`黨部的表裡找不到「${cfg.race}」這一欄。前幾列：` + preview());
+  const H = headRows[rIdx];
   let end = start + 1;
-  while (end < H.length && H[end] === '') end++;
+  while (end < width && !H[end]) end++;
 
-  const numRow = rows[hi + 1] || [], nameRow = rows[hi + 2] || [];
+  // 號次列（多半是數字）與姓名列（多半是文字）：在選舉標題下面幾列裡找
+  let numRow = null, nameRow = null, lastHead = hi + rIdx;
+  for (let r = hi + rIdx + 1; r < Math.min(rows.length, hi + rIdx + 5); r++) {
+    const cells = rows[r].slice(start, end).map(c => String(c ?? '').trim()).filter(Boolean);
+    if (!cells.length) continue;
+    const nums = cells.filter(c => /^\d+$/.test(c)).length;
+    if (!numRow && nums === cells.length && cells.length >= 2 && cells.every((c, i) => Number(c) <= 99)) { numRow = rows[r]; lastHead = r; continue; }
+    if (!nameRow && nums < cells.length / 2) { nameRow = rows[r]; lastHead = r; continue; }
+    break;
+  }
+  numRow = numRow || []; nameRow = nameRow || [];
   const candidates = [], candCols = [];
   let invalidCol = -1;
   for (let i = start; i < end; i++) {
@@ -94,12 +125,12 @@ export function parseSheet(text, cfg) {
     candidates.push({ no: cno, name: name || `${cno}號`, party: (cfg.partyByNo && cfg.partyByNo[cno]) || '', color: (cfg.colorsByNo && cfg.colorsByNo[cno]) || cfg.colors[candidates.length % cfg.colors.length] });
     candCols.push(i);
   }
-  if (!candidates.length) throw new Error(`「${cfg.race}」底下沒有候選人`);
+  if (!candidates.length) throw new Error(`「${cfg.race}」底下沒有候選人。前幾列：` + preview());
 
   const toNum = v => { const s = String(v ?? '').replace(/[,，\s]/g, ''); return /^\d+$/.test(s) ? Number(s) : null; };
   const stations = [], reports = {}, partial = [];
   let lastTown = '', lastVill = '';
-  for (let r = hi + 3; r < rows.length; r++) {
+  for (let r = lastHead + 1; r < rows.length; r++) {
     const row = rows[r];
     const id = String(row[cNo] ?? '').trim();
     const town = String(row[cTown] ?? '').trim() || lastTown;     // 合併儲存格只有第一列有值
