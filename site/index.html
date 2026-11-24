@@ -118,6 +118,47 @@
     .grid{margin-top:10px;grid-template-columns:minmax(0,1fr) 340px}
     .side{overflow:auto;scrollbar-width:thin}
   }
+  /* 應援 */
+  .cheerbtn{border:2px solid var(--accent);background:var(--accent);color:#fff;font:inherit;font-size:14px;font-weight:700;padding:6px 14px;border-radius:999px;cursor:pointer}
+  .cheerpanel{position:fixed;right:16px;top:64px;z-index:45;width:280px;background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 14px 40px rgba(0,0,0,.22);padding:12px;display:none;flex-direction:column;gap:8px}
+  .cheerpanel.on{display:flex}
+  .cp-h{font-weight:900;font-size:15px;display:flex;justify-content:space-between;align-items:baseline;padding:2px 4px 4px}
+  .cp-h span{font-size:11px;font-weight:400;color:var(--muted)}
+  .cp-b{display:flex;align-items:center;gap:10px;text-align:left;font:inherit;font-size:16px;font-weight:700;padding:11px 12px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+  .cp-b:hover{border-color:var(--accent)}
+  .cp-b b{width:24px;height:24px;border-radius:7px;background:var(--ink);color:var(--card);display:grid;place-items:center;font-size:12px;flex:none}
+  .cp-v{border-color:#e9c46a;background:color-mix(in srgb,#ffe66d 25%,var(--card))}
+  .cp-v.armed{background:#e4572e;color:#fff;border-color:#e4572e;animation:armed .5s ease-in-out infinite alternate}
+  @keyframes armed{from{box-shadow:0 0 0 0 rgba(228,87,46,.6)}to{box-shadow:0 0 0 8px rgba(228,87,46,0)}}
+  .cheer{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;text-align:center;cursor:pointer;color:#fff;
+    background:radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--vc,#1f9d55) 90%,#fff),color-mix(in srgb,var(--vc,#1f9d55) 65%,#000))}
+  .cheer.on{display:flex;animation:vfade .3s ease-out}
+  .cheer .ctop{font-size:clamp(56px,9vw,150px);font-weight:900;line-height:1.05;text-shadow:0 6px 30px rgba(0,0,0,.25);animation:vpop .6s cubic-bezier(.2,1.6,.4,1)}
+  .cheer .cmain{font-size:clamp(110px,19vw,320px);font-weight:900;line-height:1;color:#ffe66d;text-shadow:0 10px 40px rgba(0,0,0,.3);margin-top:10px;
+    animation:vpop .7s .15s cubic-bezier(.2,1.6,.4,1) both, beat .9s 1s ease-in-out infinite}
+  .cheer .cbox{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;padding:0 4vw}
+  .cheer .ctop,.cheer .cmain{display:flex;align-items:center;justify-content:center;width:100%;white-space:nowrap}
+  .cheer .cmain{font-size:clamp(100px,17vw,300px)}
+  .n4{display:inline-block;width:1.22em;height:1.22em;line-height:1.22em;text-align:center;margin:0 .1em;border-radius:50%;background:#ffe66d;color:var(--vc,#1f9d55);
+    font-size:.7em;font-family:"Outfit",sans-serif;font-weight:800;box-shadow:0 6px 24px rgba(0,0,0,.25);text-shadow:none;vertical-align:.08em}
+  .cheer .ctop .n4{background:#fff}
+  @keyframes beat{0%,100%{transform:scale(1)}15%{transform:scale(1.12)}30%{transform:scale(.98)}}
+  .cheer .fx,.victory .fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+  .cheer .cbox,.victory .vbox{position:relative;z-index:1}
+  /* 勝選全螢幕慶祝 */
+  .victory{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--vc,#1f9d55) 92%,#fff),color-mix(in srgb,var(--vc,#1f9d55) 70%,#000));color:#fff;text-align:center;cursor:pointer}
+  .victory.on{display:flex;animation:vfade .5s ease-out}
+  @keyframes vfade{from{opacity:0}to{opacity:1}}
+  .victory .vbox{animation:vpop .8s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes vpop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+  .victory .vsmall{font-size:clamp(16px,2vw,24px);opacity:.9;letter-spacing:.1em}
+  .victory .vname{font-size:clamp(64px,11vw,170px);font-weight:900;line-height:1.05;margin-top:10px;text-shadow:0 6px 30px rgba(0,0,0,.25)}
+  .victory .vwin{font-size:clamp(48px,8vw,120px);font-weight:900;line-height:1.05;color:#ffe66d;text-shadow:0 6px 30px rgba(0,0,0,.25)}
+  .victory .vvotes{margin-top:18px;font-size:clamp(40px,6vw,90px);font-weight:800}
+  .victory .vvotes small{font-size:.4em;margin-left:8px}
+  .victory .vmeta{font-size:clamp(18px,2.2vw,30px);margin-top:6px;opacity:.95}
+  .victory .vclose{margin-top:34px;font:inherit;font-size:16px;font-weight:700;border:2px solid rgba(255,255,255,.7);background:transparent;color:#fff;padding:10px 26px;border-radius:999px;cursor:pointer}
   /* progress strip */
   .strip{display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px;padding:12px 16px;margin-top:12px}
   .strip .k{font-size:12px;color:var(--muted)}
@@ -229,6 +270,7 @@
     </div>
     <div class="hdr-r">
       <span class="live" id="live"><i></i><span id="liveTxt">連線中…</span></span>
+      <button class="cheerbtn" id="cheerBtn" title="應援">📣 應援</button>
       <button class="iconbtn" id="fs" title="全螢幕">⛶</button>
       <button class="iconbtn" id="theme" title="深色／淺色">🌙</button>
     </div>
@@ -302,9 +344,26 @@
   <footer>資料每 <span id="refreshSec">20</span> 秒自動更新・顏色越深代表該里領先差距越大・斜線表示該里尚有開票所未回報</footer>
 </div>
 <div class="tip" id="tip"></div>
+<div class="cheerpanel" id="cheerPanel"></div>
+<div class="cheer" id="cheer" role="dialog" aria-label="應援">
+  <canvas class="fx" id="cFx"></canvas>
+  <div class="cbox"><div class="ctop" id="cTop"></div><div class="cmain" id="cMain"></div></div>
+</div>
+<div class="victory" id="victory" role="dialog" aria-label="勝選">
+  <canvas class="fx" id="vFx"></canvas>
+  <div class="vbox">
+    <div class="vsmall" id="vSmall"></div>
+    <div class="vname" id="vName"></div>
+    <div class="vwin">勝選！</div>
+    <div class="vvotes"><span class="num" id="vVotes"></span><small>票</small></div>
+    <div class="vmeta" id="vMeta"></div>
+    <button class="vclose" id="vClose">回到地圖</button>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.js"></script>
 <script src="mapview.js"></script>
 <script>
 (function(){
@@ -343,7 +402,7 @@ async function fetchTopo(){
 
 /* ---------- state ---------- */
 let DATA = null, AGG = null, FEATURES = [], FEAT_BY_KEY = new Map(), selectedKey = null;
-let seenTimes = {}, firstLoad = true, sortMode = 'close', topoPromise = null;
+let seenTimes = {}, celebrated = {}, firstRound = true, firstLoad = true, sortMode = 'close', topoPromise = null;
 
 /* ---------- aggregation ---------- */
 function aggregate(d){
@@ -446,7 +505,7 @@ function renderTop(){
 
   const total = d.stations.length, pct = total ? A.reported / total * 100 : 0;
   const fillingN = (d.partial || []).length;
-  $('progTxt').textContent = (A.reported === total && total ? '✅ 開票完成・' : '') + `${A.reported} / ${total} 所（${pct.toFixed(1)}%）` + (fillingN ? `・${fillingN} 所填寫中` : '');
+  $('progTxt').textContent = (A.reported === total && total ? '✅ 開票完成・' : '') + `${A.reported} / ${total} 所（${pct.toFixed(1)}%）` + (fillingN ? `（其中 ${fillingN} 所尚未填完）` : '');
   $('progBar').style.width = pct + '%';
   countTo($('sValid'), A.valid); countTo($('sInvalid'), A.invalid); countTo($('sTotal'), A.valid + A.invalid);
   const el = Number(d.config.electors) || 0;
@@ -494,6 +553,18 @@ let FOLLOW = true; try { FOLLOW = localStorage.getItem('tally-follow') !== 'off'
 const followQ = []; let following = false, returnTimer = null;
 function syncFollowBtn(){ $('followBtn').classList.toggle('on', FOLLOW); $('followBtn').textContent = FOLLOW ? '🎯 自動跟隨：開' : '🎯 自動跟隨：關'; }
 function popHtml(s, r){
+  const F = DATA.config.featured && DATA.candidates.find(c => c.no === String(DATA.config.featured));
+  if (F) {
+    const arr = DATA.candidates.map(c => ({c, v: r.votes[c.no] || 0})).sort((a,b) => b.v - a.v);
+    const sum = arr.reduce((a,x) => a + x.v, 0) || 1, mine = r.votes[F.no] || 0;
+    const second = arr.find(x => x.c.no !== F.no);
+    const place = s.name + (s.name.replace(/\d+$/, '') !== s.villages[0].replace(/[里村]$/, '') ? '（' + s.villages.join('、') + '）' : '');
+    // 順序：吳淑瑾 → 地名 → 拿下 → 票數
+    return `<div style="font-size:22px;font-weight:900;color:${esc(F.color)};line-height:1.2">🎉 ${esc(F.name)}</div>
+      <div style="font-size:18px;font-weight:700;margin:2px 0">${esc(place)} 拿下</div>
+      <div style="display:flex;align-items:baseline;gap:6px"><span class="num" style="font-size:36px;font-weight:800;color:${esc(F.color)};line-height:1.1">${fmt(mine)}</span><span style="font-size:16px;font-weight:700">票</span></div>
+      <div style="font-size:13px;color:var(--muted)">得票率 ${(mine/sum*100).toFixed(0)}%・領先 ${fmt(mine - (second ? second.v : 0))} 票</div>`;
+  }
   const arr = DATA.candidates.map(c => ({c, v: r.votes[c.no] || 0})).sort((a,b) => b.v - a.v);
   const sum = arr.reduce((a,x) => a + x.v, 0) || 1;
   return `<div style="font-size:12px;color:var(--muted)">🎉 剛開出・${esc(s.villages.join('、'))}</div>
@@ -502,6 +573,110 @@ function popHtml(s, r){
       <span><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${esc(x.c.color)};margin-right:6px"></i>${esc(x.c.name)}</span>
       <span class="num">${fmt(x.v)}<span style="color:var(--muted);font-weight:400;font-size:12px"> ${(x.v/sum*100).toFixed(0)}%</span></span></div>`).join('');
 }
+/* ---------- 彩帶與勝選畫面 ---------- */
+const featuredCand = () => DATA && DATA.config.featured ? DATA.candidates.find(c => c.no === String(DATA.config.featured)) : null;
+function burstAtPop(){
+  if (typeof confetti !== 'function') return;
+  const pop = document.querySelector('.mv-pop'); const F = featuredCand();
+  const r = pop ? pop.getBoundingClientRect() : null;
+  const x = r ? (r.left + r.width / 2) / innerWidth : 0.5, y = r ? (r.top + r.height / 2) / innerHeight : 0.5;
+  const colors = [F ? F.color : '#1f9d55', '#ffd166', '#ffffff', '#7ed957'];
+  confetti({particleCount: 110, spread: 80, startVelocity: 40, origin: {x, y}, colors: [...colors, ...CONFETTI_COLORS], shapes: ['square'], scalar: 1.1, ticks: 200, zIndex: 40});
+}
+let victoryTimer = null;
+// 勝選畫面：只由「🏆 勝選」按鈕（連按兩次）或鍵盤 V（連按兩次）手動叫出
+function showVictory(){
+  const F = featuredCand(); if (!F || !AGG) return;
+  closeCheer();
+  const total = DATA.stations.length, done = total > 0 && AGG.reported === total;
+  const sorted = [...DATA.candidates].sort((a,b) => AGG.totals[b.no] - AGG.totals[a.no]);
+  const v = AGG.totals[F.no], other = sorted.find(c => c.no !== F.no), second = other ? AGG.totals[other.no] : 0;
+  const el = $('victory'); el.style.setProperty('--vc', F.color);
+  $('vSmall').textContent = DATA.config.title + '・' + (done ? `${total} 所開票完成` : `已開出 ${AGG.reported} / ${total} 所`);
+  $('vName').textContent = '🎉 ' + F.name;
+  $('vVotes').textContent = fmt(v);
+  $('vMeta').textContent = `得票率 ${AGG.valid ? (v / AGG.valid * 100).toFixed(2) : '0.00'}%` + (v > second ? `・領先 ${fmt(v - second)} 票` : '');
+  el.classList.add('on');
+  const end = Date.now() + 7000;
+  (function frame(){
+    fire({particleCount: 8, angle: 60, spread: 60, origin: {x: 0, y: 0.75}}, 'vFx');
+    fire({particleCount: 8, angle: 120, spread: 60, origin: {x: 1, y: 0.75}}, 'vFx');
+    if (Date.now() < end && el.classList.contains('on')) requestAnimationFrame(frame);
+  })();
+  clearInterval(victoryTimer);
+  victoryTimer = setInterval(() => { if (!el.classList.contains('on')) return clearInterval(victoryTimer);
+    fire({particleCount: 160, spread: 110, startVelocity: 48, origin: {x: Math.random() * 0.6 + 0.2, y: 0.4}}, 'vFx'); }, 2500);
+}
+function closeVictory(){ $('victory').classList.remove('on'); clearInterval(victoryTimer); }
+
+/* ---------- 📣 應援 ---------- */
+// 口號可以自己改：top 是上面那行（小一點），main 是主要那行（超大、跟著節拍跳）
+const CHEERS = [
+  {top: '{name}', main: '凍蒜'},
+  {top: '澎湖', main: '萬④興'},
+  {top: '澎湖', main: '前程④瑾'},
+  {top: '謝謝', main: '澎湖鄉親'},
+];
+let cheerTimer = null;
+// 彩紙：繽紛小方塊，畫在全螢幕畫面「背景與大字之間」的畫布上，不會遮到字
+const CONFETTI_COLORS = ['#ff4d6d', '#ffd60a', '#4cc9f0', '#7ae582', '#ff9f1c', '#ffffff', '#c77dff', '#f72585'];
+const fxCache = {};
+function fxFor(id){
+  if (typeof confetti !== 'function' || !confetti.create) return null;
+  if (!fxCache[id]) fxCache[id] = confetti.create($(id), {resize: true, useWorker: false});
+  return fxCache[id];
+}
+function fire(opts, target){
+  const f = target ? fxFor(target) : (typeof confetti === 'function' ? confetti : null);
+  if (!f) return;
+  f(Object.assign({shapes: ['square'], colors: CONFETTI_COLORS, scalar: 1.25, ticks: 320, gravity: 0.75, drift: 0, flat: false}, opts));
+}
+function fillCheer(t){ const F = featuredCand(); return String(t).replace(/\{name\}/g, F ? F.name : '').replace(/\{no\}/g, F ? F.no : ''); }
+function showCheer(i){
+  const c = CHEERS[i]; if (!c) return;
+  closeVictory();
+  const F = featuredCand(), col = F ? F.color : '#1f9d55';
+  const el = $('cheer'); el.style.setProperty('--vc', col);
+  const deco = t => esc(fillCheer(t)).replace(/④/g, '<span class="n4">4</span>');
+  $('cTop').innerHTML = deco(c.top); $('cMain').innerHTML = deco(c.main);
+  el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+  fire({particleCount: 220, spread: 120, startVelocity: 55, origin: {x: 0.5, y: 0.6}}, 'cFx');
+  clearInterval(cheerTimer);
+  let k = 0;
+  cheerTimer = setInterval(() => {
+    if (!el.classList.contains('on')) return clearInterval(cheerTimer);
+    k++;
+    fire({particleCount: 55, angle: 60, spread: 60, startVelocity: 55, origin: {x: 0, y: 0.85}}, 'cFx');
+    fire({particleCount: 55, angle: 120, spread: 60, startVelocity: 55, origin: {x: 1, y: 0.85}}, 'cFx');
+    if (k % 3 === 0) fire({particleCount: 70, spread: 160, startVelocity: 30, origin: {x: Math.random() * 0.8 + 0.1, y: -0.05}, gravity: 0.6}, 'cFx');
+  }, 900);
+}
+function closeCheer(){ $('cheer').classList.remove('on'); clearInterval(cheerTimer); }
+function buildCheerPanel(){
+  const p = $('cheerPanel');
+  p.innerHTML = '<div class="cp-h">📣 應援<span>鍵盤 1～' + CHEERS.length + '・Esc 收起</span></div>'
+    + CHEERS.map((c, i) => `<button class="cp-b" data-i="${i}"><b>${i + 1}</b>${esc(fillCheer(c.top))} ${esc(fillCheer(c.main))}</button>`).join('')
+    + '<button class="cp-b cp-v" id="vBtn"><b>V</b>🏆 勝選畫面</button>';
+  p.querySelectorAll('.cp-b[data-i]').forEach(b => b.onclick = () => showCheer(Number(b.dataset.i)));
+  $('vBtn').onclick = armVictory;
+}
+let vArmed = 0;
+function armVictory(){
+  const b = $('vBtn');
+  if (Date.now() - vArmed < 3000) { vArmed = 0; b.classList.remove('armed'); b.innerHTML = '<b>V</b>🏆 勝選畫面'; showVictory(); return; }
+  vArmed = Date.now(); b.classList.add('armed'); b.innerHTML = '<b>V</b>⚠️ 再按一次確認';
+  setTimeout(() => { if (vArmed && Date.now() - vArmed >= 2900) { vArmed = 0; b.classList.remove('armed'); b.innerHTML = '<b>V</b>🏆 勝選畫面'; } }, 3000);
+}
+$('cheerBtn').onclick = () => { if (!$('cheerPanel').innerHTML) buildCheerPanel(); $('cheerPanel').classList.toggle('on'); };
+$('cheer').onclick = closeCheer;
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'Escape') { closeCheer(); closeVictory(); return; }
+  if (/^[1-9]$/.test(e.key) && CHEERS[Number(e.key) - 1]) { showCheer(Number(e.key) - 1); return; }
+  if (e.key === 'v' || e.key === 'V') { if (!$('cheerPanel').innerHTML) buildCheerPanel(); armVictory(); }
+});
+$('victory').onclick = closeVictory;
+
 function enqueueNew(ids){
   ids.forEach(id => { const s = DATA.stations.find(x => x.id === id); if (s && s._keys[0]) followQ.push(s); });
   if (!following) nextFollow();
@@ -519,6 +694,7 @@ function nextFollow(){
   const userBusy = Date.now() - MV.lastInteract < 12000 || selectedKey;
   if (FOLLOW && !userBusy && r) {
     MV.celebrate(s._keys[0], popHtml(s, r), 2300, [s.id]);
+    setTimeout(() => burstAtPop(), 760);
     setTimeout(nextFollow, followQ.length > 4 ? 1600 : 3100);
   } else {
     MV.flash(new Set(s._keys), [s.id]);
@@ -754,20 +930,30 @@ async function load(){
     if (!topoPromise) topoPromise = fetchTopo().then(t => { buildMap(t); return t; });
     await topoPromise;
     // 黨部的表沒有回報時間：用「數字有沒有變」判斷新開出，時間記成這台電腦第一次看到的時間
-    const newIds = new Set(), nowIso = new Date().toISOString();
+    // 時間記錄：第一次看到數字的時間
+    const newIds = new Set(), changedIds = new Set(), nowIso = new Date().toISOString();
     Object.entries(d.reports || {}).forEach(([id, r]) => {
       const sig = JSON.stringify(r.votes) + '|' + r.invalid;
-      if (!seenTimes[id] || seenTimes[id].sig !== sig) {
-        if (!firstLoad) newIds.add(id);
-        seenTimes[id] = {sig, time: r.time || nowIso};
-      }
+      if (!seenTimes[id]) { if (!firstLoad) newIds.add(id); seenTimes[id] = {sig, time: r.time || nowIso}; }
+      else if (seenTimes[id].sig !== sig) { if (!firstLoad) changedIds.add(id); seenTimes[id] = {sig, time: r.time || nowIso}; }
       if (!r.time) r.time = seenTimes[id].time;
     });
     firstLoad = false;
     AGG = aggregate(d);
 
-    renderTop(); if (!window._fitted) { window._fitted = true; refit(); } paintMap(); renderWins(); renderTowns(); renderFeed(newIds); renderTable(); renderDetail();
-    if (newIds.size) enqueueNew([...newIds].sort((a,b) => String(d.reports[a].time).localeCompare(String(d.reports[b].time))));
+    renderTop(); if (!window._fitted) { window._fitted = true; refit(); } paintMap(); renderWins(); renderTowns(); renderFeed(new Set([...newIds, ...changedIds])); renderTable(); renderDetail();
+    // 特效只給主打候選人（吳淑瑾）：某一所「變成她領先」的那一刻飛過去慶祝，每所只慶祝一次；其他人領先的所不做任何特效
+    const FNO = String(d.config.featured || '');
+    const celebrate = [];
+    Object.entries(d.reports || {}).forEach(([id, r]) => {
+      const L = stationLeader(r);
+      const mineLead = FNO ? (L && L.no === FNO) : true;
+      if (!mineLead || celebrated[id]) return;
+      if (FNO) celebrated[id] = true;
+      if (!firstRound && (FNO ? true : newIds.has(id))) celebrate.push(id);
+    });
+    firstRound = false;
+    if (celebrate.length) enqueueNew(celebrate.sort((a,b) => String(d.reports[a].time).localeCompare(String(d.reports[b].time))));
     $('err').style.display = 'none';
     $('live').classList.remove('err');
     $('liveTxt').textContent = '最後更新 ' + new Date().toLocaleTimeString('zh-TW', {hour12:false});
